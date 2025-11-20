@@ -439,7 +439,7 @@ Clareza antes do estilo.
 
 # 📌 14. O que falta para o jogo virar “jogo de verdade”
 
-* sprites animados
+* sprites animados (estou pensando em usar LibreSprite, Aseprite, Piskel)
 * tileset para cenários
 * efeitos visuais (hitflash, partículas)
 * músicas/sons
