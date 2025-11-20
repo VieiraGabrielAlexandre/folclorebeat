@@ -101,7 +101,7 @@ func (e *Enemy) TakeDamage(d int) {
 	if e.HP <= 0 {
 		e.HP = 0
 		e.Alive = false
-		e.Killed = true
+		e.Killed = true // importante pro drop do power-up
 	}
 }
 

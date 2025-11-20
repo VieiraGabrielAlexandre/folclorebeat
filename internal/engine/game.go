@@ -6,13 +6,17 @@ import (
 	_ "folclorebeat/internal/combat"
 	"folclorebeat/internal/enemies"
 	"folclorebeat/internal/player"
+	"folclorebeat/internal/powerups"
 	"folclorebeat/internal/world"
 )
 
 type Game struct {
-	Player  *player.Player
-	Enemies []*enemies.Enemy
-	Stage   *world.Stage
+	Player   *player.Player
+	Enemies  []*enemies.Enemy
+	Stage    *world.Stage
+	PowerUps []*powerups.PowerUp
+
+	frame int
 }
 
 func NewGame() *Game {
@@ -23,10 +27,13 @@ func NewGame() *Game {
 			enemies.NewZombie(300, 200),
 			enemies.NewVampire(350, 200),
 		},
+		PowerUps: []*powerups.PowerUp{},
 	}
 }
 
 func (g *Game) Update() error {
+	g.frame++
+
 	g.Player.Update()
 
 	// IA dos inimigos
@@ -46,11 +53,29 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// Recompensa de XP por inimigos mortos
+	// Drop de power-up quando inimigo morre
 	for _, e := range g.Enemies {
 		if e.Killed {
-			g.Player.GainXP(e.XPReward)
+			orb := powerups.NewWolfOrb(e.X, e.Y-10)
+			g.PowerUps = append(g.PowerUps, orb)
 			e.Killed = false
+		}
+	}
+
+	// Atualiza e verifica coleta de power-ups
+	for _, p := range g.PowerUps {
+		if p.Collected {
+			continue
+		}
+		p.Update(g.frame)
+
+		if p.Hitbox().Intersects(g.Player.Hitbox()) {
+			p.Collected = true
+			// orbe de lobisomem => dá XP
+			switch p.Type {
+			case powerups.TypeWolfOrb:
+				g.Player.GainXP(1)
+			}
 		}
 	}
 
@@ -64,6 +89,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, e := range g.Enemies {
 		e.Draw(screen)
 	}
+
+	for _, p := range g.PowerUps {
+		p.Draw(screen)
+	}
+
+	drawHUD(screen, g.Player)
 }
 
 func (g *Game) Layout(w, h int) (int, int) {
