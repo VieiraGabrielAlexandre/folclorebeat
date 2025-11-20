@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"folclorebeat/internal/bosses"
 	_ "folclorebeat/internal/combat"
 	"folclorebeat/internal/enemies"
 	"folclorebeat/internal/player"
@@ -16,6 +17,10 @@ type Game struct {
 	Stage    *world.Stage
 	PowerUps []*powerups.PowerUp
 
+	Boss        *bosses.Saci
+	BossSpawned bool
+	BossXPGiven bool
+
 	frame int
 }
 
@@ -24,8 +29,9 @@ func NewGame() *Game {
 		Player: player.NewPlayer(),
 		Stage:  world.NewStage(),
 		Enemies: []*enemies.Enemy{
-			enemies.NewZombie(300, 200),
-			enemies.NewVampire(350, 200),
+			enemies.NewZombie(260, 200),
+			enemies.NewZombie(320, 200),
+			enemies.NewVampire(380, 200),
 		},
 		PowerUps: []*powerups.PowerUp{},
 	}
@@ -36,9 +42,14 @@ func (g *Game) Update() error {
 
 	g.Player.Update()
 
-	// IA dos inimigos
+	// IA dos inimigos comuns
 	for _, e := range g.Enemies {
 		e.Update(g.Player)
+	}
+
+	// IA do boss, se existir
+	if g.BossSpawned && g.Boss != nil && g.Boss.Alive {
+		g.Boss.Update(g.Player)
 	}
 
 	// Combate: ataque do player contra inimigos
@@ -49,6 +60,13 @@ func (g *Game) Update() error {
 			}
 			if atkRect.Intersects(e.Hitbox()) {
 				e.TakeDamage(g.Player.AttackPower)
+			}
+		}
+
+		// ataque também acerta o boss
+		if g.BossSpawned && g.Boss != nil && g.Boss.Alive {
+			if atkRect.Intersects(g.Boss.Hitbox()) {
+				g.Boss.TakeDamage(g.Player.AttackPower)
 			}
 		}
 	}
@@ -71,11 +89,39 @@ func (g *Game) Update() error {
 
 		if p.Hitbox().Intersects(g.Player.Hitbox()) {
 			p.Collected = true
-			// orbe de lobisomem => dá XP
 			switch p.Type {
 			case powerups.TypeWolfOrb:
 				g.Player.GainXP(1)
 			}
+		}
+	}
+
+	// Spawn do boss Saci:
+	// quando todos os inimigos comuns estiverem mortos e ainda não tiver boss
+	if !g.BossSpawned {
+		allDead := true
+		for _, e := range g.Enemies {
+			if e.Alive {
+				allDead = false
+				break
+			}
+		}
+		if allDead {
+			g.Boss = bosses.NewSaci(380, 200)
+			g.BossSpawned = true
+		}
+	}
+
+	// Recompensa de XP ao matar o boss
+	if g.BossSpawned && g.Boss != nil && !g.Boss.Alive && !g.BossXPGiven {
+		g.Player.GainXP(3) // boss dá mais XP
+		g.BossXPGiven = true
+	}
+
+	// Dano de contato do boss no player
+	if g.BossSpawned && g.Boss != nil && g.Boss.Alive {
+		if g.Boss.Hitbox().Intersects(g.Player.Hitbox()) {
+			g.Player.TakeDamage(1)
 		}
 	}
 
@@ -92,6 +138,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, p := range g.PowerUps {
 		p.Draw(screen)
+	}
+
+	if g.BossSpawned && g.Boss != nil {
+		g.Boss.Draw(screen)
 	}
 
 	drawHUD(screen, g.Player)

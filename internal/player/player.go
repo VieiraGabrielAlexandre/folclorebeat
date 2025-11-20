@@ -23,6 +23,7 @@ type Player struct {
 	XPToNext       int
 	AttackPower    int
 	AttackCooldown int // frames até poder atacar de novo
+	HurtCooldown   int // frames de invulnerabilidade depois de tomar dano
 }
 
 func NewPlayer() *Player {
@@ -45,6 +46,9 @@ func NewPlayer() *Player {
 func (p *Player) Update() {
 	if p.AttackCooldown > 0 {
 		p.AttackCooldown--
+	}
+	if p.HurtCooldown > 0 {
+		p.HurtCooldown--
 	}
 
 	p.handleMovement()
@@ -116,4 +120,15 @@ func (p *Player) TransformToWolf() {
 	p.IsWolf = true
 	p.State = StateWolf
 	p.AttackPower = 3
+}
+
+func (p *Player) TakeDamage(d int) {
+	if p.HurtCooldown > 0 {
+		return
+	}
+	p.HP -= d
+	if p.HP < 0 {
+		p.HP = 0
+	}
+	p.HurtCooldown = 30 // ~meio segundo de invulnerabilidade
 }
