@@ -4,7 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"folclorebeat/internal/bosses"
-	_ "folclorebeat/internal/combat"
 	"folclorebeat/internal/enemies"
 	"folclorebeat/internal/player"
 	"folclorebeat/internal/powerups"
@@ -17,9 +16,10 @@ type Game struct {
 	Stage    *world.Stage
 	PowerUps []*powerups.PowerUp
 
-	Boss        *bosses.Saci
-	BossSpawned bool
-	BossXPGiven bool
+	Boss            bosses.Boss
+	BossStage       int // 0 = nenhum, 1 = Saci, 2 = Cuca
+	SaciRewardGiven bool
+	CucaRewardGiven bool
 
 	frame int
 }
@@ -42,17 +42,17 @@ func (g *Game) Update() error {
 
 	g.Player.Update()
 
-	// IA dos inimigos comuns
+	// IA inimigos comuns
 	for _, e := range g.Enemies {
 		e.Update(g.Player)
 	}
 
-	// IA do boss, se existir
-	if g.BossSpawned && g.Boss != nil && g.Boss.Alive {
+	// IA boss atual
+	if g.Boss != nil && g.Boss.IsAlive() {
 		g.Boss.Update(g.Player)
 	}
 
-	// Combate: ataque do player contra inimigos
+	// ataques do player
 	if atkRect, ok := g.Player.AttackHitbox(); ok {
 		for _, e := range g.Enemies {
 			if !e.Alive {
@@ -62,16 +62,14 @@ func (g *Game) Update() error {
 				e.TakeDamage(g.Player.AttackPower)
 			}
 		}
-
-		// ataque também acerta o boss
-		if g.BossSpawned && g.Boss != nil && g.Boss.Alive {
+		if g.Boss != nil && g.Boss.IsAlive() {
 			if atkRect.Intersects(g.Boss.Hitbox()) {
 				g.Boss.TakeDamage(g.Player.AttackPower)
 			}
 		}
 	}
 
-	// Drop de power-up quando inimigo morre
+	// drop de orbs
 	for _, e := range g.Enemies {
 		if e.Killed {
 			orb := powerups.NewWolfOrb(e.X, e.Y-10)
@@ -80,7 +78,7 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// Atualiza e verifica coleta de power-ups
+	// orbs: update + coleta
 	for _, p := range g.PowerUps {
 		if p.Collected {
 			continue
@@ -89,16 +87,12 @@ func (g *Game) Update() error {
 
 		if p.Hitbox().Intersects(g.Player.Hitbox()) {
 			p.Collected = true
-			switch p.Type {
-			case powerups.TypeWolfOrb:
-				g.Player.GainXP(1)
-			}
+			g.Player.GainXP(1)
 		}
 	}
 
-	// Spawn do boss Saci:
-	// quando todos os inimigos comuns estiverem mortos e ainda não tiver boss
-	if !g.BossSpawned {
+	// spawn do Saci
+	if g.BossStage == 0 {
 		allDead := true
 		for _, e := range g.Enemies {
 			if e.Alive {
@@ -108,21 +102,24 @@ func (g *Game) Update() error {
 		}
 		if allDead {
 			g.Boss = bosses.NewSaci(380, 200)
-			g.BossSpawned = true
+			g.BossStage = 1
 		}
 	}
 
-	// Recompensa de XP ao matar o boss
-	if g.BossSpawned && g.Boss != nil && !g.Boss.Alive && !g.BossXPGiven {
-		g.Player.GainXP(3) // boss dá mais XP
-		g.BossXPGiven = true
+	// pós-Saci: dar XP e criar Cuca
+	if g.BossStage == 1 && g.Boss != nil && !g.Boss.IsAlive() && !g.SaciRewardGiven {
+		g.Player.GainXP(2)
+		g.SaciRewardGiven = true
+
+		g.Boss = bosses.NewCuca(360, 160)
+		g.BossStage = 2
 	}
 
-	// Dano de contato do boss no player
-	if g.BossSpawned && g.Boss != nil && g.Boss.Alive {
-		if g.Boss.Hitbox().Intersects(g.Player.Hitbox()) {
-			g.Player.TakeDamage(1)
-		}
+	// pós-Cuca: recompensa final
+	if g.BossStage == 2 && g.Boss != nil && !g.Boss.IsAlive() && !g.CucaRewardGiven {
+		g.Player.GainXP(3)
+		g.CucaRewardGiven = true
+		// aqui depois podemos colocar “fase completa”
 	}
 
 	return nil
@@ -140,7 +137,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		p.Draw(screen)
 	}
 
-	if g.BossSpawned && g.Boss != nil {
+	if g.Boss != nil && g.Boss.IsAlive() {
 		g.Boss.Draw(screen)
 	}
 

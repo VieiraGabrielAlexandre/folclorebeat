@@ -23,7 +23,7 @@ type Player struct {
 	XPToNext       int
 	AttackPower    int
 	AttackCooldown int // frames até poder atacar de novo
-	HurtCooldown   int // frames de invulnerabilidade depois de tomar dano
+	HurtCooldown   int
 }
 
 func NewPlayer() *Player {
@@ -130,5 +130,5 @@ func (p *Player) TakeDamage(d int) {
 	if p.HP < 0 {
 		p.HP = 0
 	}
-	p.HurtCooldown = 30 // ~meio segundo de invulnerabilidade
+	p.HurtCooldown = 30
 }

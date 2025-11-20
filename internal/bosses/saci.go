@@ -37,7 +37,7 @@ func NewSaci(x, y float64) *Saci {
 		HP:               12,
 		MaxHP:            12,
 		Alive:            true,
-		teleportCooldown: 90, // ~1.5s a 60fps
+		teleportCooldown: 90,
 	}
 }
 
@@ -51,21 +51,17 @@ func (s *Saci) Update(p *player.Player) {
 		s.teleportCooldown--
 	}
 
-	// animação simples: flutuar um pouco no eixo Y
 	offset := math.Sin(float64(s.frame) * 0.1)
 	s.Y = s.baseY + offset*4
 
-	// teleport periódico perto do player
 	if s.teleportCooldown <= 0 {
-		// calcula posição relativa ao player
 		dir := 1.0
 		if rand.Intn(2) == 0 {
 			dir = -1.0
 		}
-		dist := float64(40 + rand.Intn(80)) // entre 40 e 120
+		dist := float64(40 + rand.Intn(80))
 		newX := p.X + dir*dist
 
-		// clampa pra dentro da tela lógica (480x270)
 		if newX < 20 {
 			newX = 20
 		}
@@ -104,10 +100,13 @@ func (s *Saci) Draw(screen *ebiten.Image) {
 	}
 
 	img := ebiten.NewImage(int(s.Width), int(s.Height))
-	// roxo/vermelho pra destacar como boss
 	img.Fill(color.RGBA{180, 30, 180, 255})
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(s.X, s.Y)
 	screen.DrawImage(img, op)
+}
+
+func (s *Saci) IsAlive() bool {
+	return s.Alive
 }
