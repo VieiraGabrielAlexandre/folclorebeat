@@ -66,6 +66,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 }
 
-func (g *Game) Layout(w, h int) (int, int) {
+func (g *Game) Layout() (int, int) {
 	return 480, 270
 }

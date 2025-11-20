@@ -6,4 +6,4 @@ type PowerUp struct {
 }
 
 // Apply would apply the power-up effect to a target.
-func (p *PowerUp) Apply(target any) {}
+func (p *PowerUp) Apply() {}
