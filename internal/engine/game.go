@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
+	_ "folclorebeat/internal/combat"
 	"folclorebeat/internal/enemies"
 	"folclorebeat/internal/player"
 	"folclorebeat/internal/world"
@@ -28,8 +29,29 @@ func NewGame() *Game {
 func (g *Game) Update() error {
 	g.Player.Update()
 
+	// IA dos inimigos
 	for _, e := range g.Enemies {
 		e.Update(g.Player)
+	}
+
+	// Combate: ataque do player contra inimigos
+	if atkRect, ok := g.Player.AttackHitbox(); ok {
+		for _, e := range g.Enemies {
+			if !e.Alive {
+				continue
+			}
+			if atkRect.Intersects(e.Hitbox()) {
+				e.TakeDamage(g.Player.AttackPower)
+			}
+		}
+	}
+
+	// Recompensa de XP por inimigos mortos
+	for _, e := range g.Enemies {
+		if e.Killed {
+			g.Player.GainXP(e.XPReward)
+			e.Killed = false
+		}
 	}
 
 	return nil

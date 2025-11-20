@@ -18,7 +18,9 @@ func (p *Player) handleMovement() {
 	}
 
 	if moving && p.OnGround {
-		p.State = StateWalk
+		if p.State != StatePunch && p.State != StateKick && p.State != StateAirKick {
+			p.State = StateWalk
+		}
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeySpace) && p.OnGround {
@@ -37,7 +39,11 @@ func (p *Player) applyPhysics() {
 			p.Y = 200
 			p.OnGround = true
 			p.VY = 0
-			p.State = StateIdle
+
+			// se não estiver atacando, volta pro idle
+			if p.State == StateJump || p.State == StateAirKick {
+				p.State = StateIdle
+			}
 		}
 	}
 }
