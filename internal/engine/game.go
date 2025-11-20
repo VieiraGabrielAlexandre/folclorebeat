@@ -19,8 +19,8 @@ func NewGame() *Game {
 		Player: player.NewPlayer(),
 		Stage:  world.NewStage(),
 		Enemies: []*enemies.Enemy{
-			enemies.NewZombie(300, 300),
-			enemies.NewVampire(500, 280),
+			enemies.NewZombie(300, 200),
+			enemies.NewVampire(350, 200),
 		},
 	}
 }
